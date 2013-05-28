@@ -193,7 +193,7 @@ return 23; //I with acute -> i with grave
 void keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
 {
   int code;
-  //      L("Got keysym: %04x (down=%d)\n", (unsigned int)key, (int)down);
+  L("Got keysym: %04x (down=%d)\n", (unsigned int)key, (int)down);
 
   setIdle(0);
   int sh = 0;
@@ -209,14 +209,27 @@ void keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
 
     if (key && down)
     {
-      if (sh) suinput_press(inputfd, 42); //left shift
-      if (alt) suinput_press(inputfd, 56); //left alt
+      // if (sh) suinput_press(inputfd, 42); //left shift
+      // if (alt) suinput_press(inputfd, 56); //left alt
 
+      L("Calling suinput_press, code: %04x\n", (unsigned int)code);
       ret=suinput_press(inputfd,code);
-      ret=suinput_release(inputfd,code);
+      if (ret != 0) {
+        L("Error: %d (%s)\n", errno, strerror(errno));
+      }
 
-      if (alt) suinput_release(inputfd, 56); //left alt
-      if (sh) suinput_release(inputfd, 42); //left shift
+      suinput_write(inputfd, EV_SYN, SYN_REPORT, 0);
+
+      L("Calling suinput_release, code: %04x\n", (unsigned int)code);
+      ret=suinput_release(inputfd,code);
+      if (ret != 0) {
+        L("Error: %d (%s)\n", errno, strerror(errno));
+      }
+      
+      suinput_write(inputfd, EV_SYN, SYN_REPORT, 0);
+
+      // if (alt) suinput_release(inputfd, 56); //left alt
+      // if (sh) suinput_release(inputfd, 42); //left shift
     }
     else
     ;//ret=suinput_release(inputfd,code);

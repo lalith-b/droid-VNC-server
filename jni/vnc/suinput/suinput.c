@@ -25,6 +25,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdio.h>
 #include "suinput.h"
 
+
+#ifndef UI_SET_PROPBIT
+
+#define UI_SET_PROPBIT      _IOW(UINPUT_IOCTL_BASE, 110, int)
+#define EVIOCGPROP(len)     _IOC(_IOC_READ, 'E', 0x09, len)
+#define INPUT_PROP_POINTER      0x00
+#define INPUT_PROP_DIRECT       0x01
+#define INPUT_PROP_BUTTONPAD    0x02
+#define INPUT_PROP_SEMI_MT      0x03
+#define INPUT_PROP_MAX          0x1f
+#define INPUT_PROP_CNT          (INPUT_PROP_MAX + 1)
+
+#endif /*UI_SET_PROPBIT*/
+
+
 char* UINPUT_FILEPATHS[] = {
     "/android/dev/uinput",
     "/dev/uinput",
@@ -110,13 +125,17 @@ int suinput_open(const char* device_name, const struct input_id* id)
     if (ioctl(uinput_fd, UI_SET_ABSBIT, ABS_Y) == -1)
         goto err;
 
-    
+    if (ioctl(uinput_fd, UI_SET_PROPBIT, INPUT_PROP_DIRECT) == -1)
+        goto err;    
 
     /* Configure device to handle all keys, see linux/input.h. */
     for (i = 0; i < KEY_MAX; i++) {
         if (ioctl(uinput_fd, UI_SET_KEYBIT, i) == -1)
             goto err;
     }
+
+    if (ioctl(uinput_fd, UI_SET_KEYBIT, i) == -1)
+        goto err;
 
     /* Set device-specific information. */
     memset(&user_dev, 0, sizeof(user_dev));
@@ -163,6 +182,8 @@ int suinput_open(const char* device_name, const struct input_id* id)
     can also fail and reset errno, therefore we store the original one
     and reset it before returning.
   */
+    L("Init failed, errno: %d (%s)", errno, strerror(errno));
+
     original_errno = errno;
 
     /* Cleanup. */
