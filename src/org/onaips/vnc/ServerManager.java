@@ -22,6 +22,7 @@ import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.text.ClipboardManager;
 import android.util.Log;
+import android.view.Surface;
 import android.widget.Toast;
 
 public class ServerManager extends Service {
@@ -207,6 +208,8 @@ public class ServerManager extends Service {
 	
 	public static boolean isServerRunning() {
 		try {
+			Log.d(MainActivity.VNC_LOG, "isServerRunning");
+
 			byte[] receiveData = new byte[1024];
 			DatagramSocket clientSocket = new DatagramSocket();
 			InetAddress addr = InetAddress.getLocalHost();
@@ -215,6 +218,7 @@ public class ServerManager extends Service {
 			String toSend = "~PING|";
 			byte[] buffer = toSend.getBytes();
 
+			Log.d(MainActivity.VNC_LOG, "clientSocket.send");
 			DatagramPacket question = new DatagramPacket(buffer, buffer.length,
 					addr, 13132);
 			clientSocket.send(question);
@@ -228,6 +232,7 @@ public class ServerManager extends Service {
 
 			return receivedString.equals("~PONG|");
 		} catch (Exception e) {
+			Log.e(MainActivity.VNC_LOG, e.toString());
 			return false;
 		}
 	}
@@ -271,8 +276,28 @@ public class ServerManager extends Service {
 									.substring(0, 15).equals("~SERVERSTOPPED|"))) {
 						Intent intent = new Intent("org.onaips.vnc.ACTIVITY_UPDATE");
 						sendBroadcast(intent);
-					} 
-					else if (preferences.getBoolean("notifyclient", true)) {
+					} else if (resp.startsWith("~ROTATE|")){
+						String arg = resp.substring(8, resp.length() - 1);
+						if (arg.equals("0")) {
+							android.provider.Settings.System.putInt(getContentResolver(),
+									android.provider.Settings.System.USER_ROTATION,
+                                    Surface.ROTATION_0);
+
+						} else if (arg.equals("90")) {
+							android.provider.Settings.System.putInt(getContentResolver(),
+                                    android.provider.Settings.System.USER_ROTATION,
+                                    Surface.ROTATION_90);
+						} else if (arg.equals("180")) {
+							android.provider.Settings.System.putInt(getContentResolver(),
+                                    android.provider.Settings.System.USER_ROTATION,
+                                    Surface.ROTATION_180);
+						} else if (arg.equals("270")) {
+							android.provider.Settings.System.putInt(getContentResolver(),
+                                    android.provider.Settings.System.USER_ROTATION,
+                                    Surface.ROTATION_270);
+						}
+
+					} else if (preferences.getBoolean("notifyclient", true)) {
 						if (resp.length() > 10
 								&& resp.substring(0, 11).equals("~CONNECTED|")) {
 							resp = resp.substring(11, resp.length() - 1);

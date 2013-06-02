@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="VNCServer" default="help">
+    <fail message="ndk.dir is missing. Make sure to add it to local.properties or to inject it through the ANDROID_HOME environment variable." 
+        unless="ndk.dir"/>
+
+    <target name="-pre-build">
+        <exec executable="${ndk.dir}/ndk-build" failonerror="true">
+            <arg value="j=2"/>
+            <arg value="NDK_DEBUG=1"/>
+            <arg value="V=1"/>
+        </exec>
+        <copy file="libs/armeabi-v7a/androidvncserver" tofile="libs/armeabi-v7a/libandroidvncserver.so"/>
+<!--         <copy todir="${jar.libs.dir}/armeabi-v7a">
+            <fileset dir="libs/armeabi-v7a" includes="libandroidvncserver.so" />
+        </copy> -->
+    </target>
+
+    <target name="-pre-clean">
+        <exec executable="${ndk.dir}/ndk-build" failonerror="true">
+            <arg value="clean"/>
+        </exec>
+    </target>
+
+    <target name="run">
+        <xpath input="AndroidManifest.xml"
+               expression="/manifest/@package"
+               output="manifest.package" />
+        <xpath input="AndroidManifest.xml"
+               expression="/manifest/application/activity[intent-filter/action/@android:name='android.intent.action.MAIN']/@android:name"
+               output="manifest.main" />
+        <echo level="info">Restart main activity ${manifest.package}/${manifest.main}</echo>
+        <exec executable="${android.platform.tools.dir}/adb">
+            <arg value="shell"/>
+            <arg value="am"/>
+            <arg value="start"/>
+            <arg value="-S"/>
+            <arg value="-a"/>
+            <arg value="android.intent.action.MAIN"/>
+            <arg value="-n"/>
+            <arg value="${manifest.package}/${manifest.main}"/>
+        </exec>
+    </target>
+</project>

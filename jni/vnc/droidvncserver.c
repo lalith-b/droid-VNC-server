@@ -138,6 +138,14 @@ void sendServerStopped()
   sendMsgToGui("~SERVERSTOPPED|\n");
 }
 
+void rfbAndroidLog(const char *format, ...) {
+  va_list arglist; 
+
+  va_start(arglist, format); 
+  __android_log_vprint(ANDROID_LOG_INFO, "VNCServer", format, arglist); 
+  va_end(arglist); 
+}
+
 void initVncServer(int argc, char **argv)
 { 
 
@@ -148,9 +156,9 @@ void initVncServer(int argc, char **argv)
   assert(cmpbuf != NULL);
 
   if (rotation==0 || rotation==180) 
-  vncscr = rfbGetScreen(&argc, argv, screenformat.width , screenformat.height, 0 /* not used */ , 3,  screenformat.bitsPerPixel/CHAR_BIT);
+    vncscr = rfbGetScreen(&argc, argv, screenformat.width , screenformat.height, 0 /* not used */ , 3,  screenformat.bitsPerPixel/CHAR_BIT);
   else
-  vncscr = rfbGetScreen(&argc, argv, screenformat.height, screenformat.width, 0 /* not used */ , 3,  screenformat.bitsPerPixel/CHAR_BIT);
+    vncscr = rfbGetScreen(&argc, argv, screenformat.height, screenformat.width, 0 /* not used */ , 3,  screenformat.bitsPerPixel/CHAR_BIT);
 
   assert(vncscr != NULL);
 
@@ -192,25 +200,29 @@ void initVncServer(int argc, char **argv)
 
   rfbInitServer(vncscr);
 
-    //assign update_screen depending on bpp
-    if (vncscr->serverFormat.bitsPerPixel == 32)
-    update_screen=&CONCAT2E(update_screen_,32);
-    else if (vncscr->serverFormat.bitsPerPixel == 16)
-    update_screen=&CONCAT2E(update_screen_,16);
-    else if (vncscr->serverFormat.bitsPerPixel == 8)
-    update_screen=&CONCAT2E(update_screen_,8);
-    else {
-      L("Unsupported pixel depth: %d\n",
-        vncscr->serverFormat.bitsPerPixel);
+  //assign update_screen depending on bpp
+  if (vncscr->serverFormat.bitsPerPixel == 32)
+  update_screen=&CONCAT2E(update_screen_,32);
+  else if (vncscr->serverFormat.bitsPerPixel == 16)
+  update_screen=&CONCAT2E(update_screen_,16);
+  else if (vncscr->serverFormat.bitsPerPixel == 8)
+  update_screen=&CONCAT2E(update_screen_,8);
+  else {
+    L("Unsupported pixel depth: %d\n",
+      vncscr->serverFormat.bitsPerPixel);
 
-      sendMsgToGui("~SHOW|Unsupported pixel depth, please send bug report.\n");
-      close_app();
-      exit(-1);
-    }
+    sendMsgToGui("~SHOW|Unsupported pixel depth, please send bug report.\n");
+    close_app();
+    exit(-1);
+  }
 
-    /* Mark as dirty since we haven't sent any updates at all yet. */
-    rfbMarkRectAsModified(vncscr, 0, 0, vncscr->width, vncscr->height);
-    }
+  /* Mark as dirty since we haven't sent any updates at all yet. */
+  rfbMarkRectAsModified(vncscr, 0, 0, vncscr->width, vncscr->height);
+
+  rfbLogEnable(1);
+  rfbLog=rfbAndroidLog;
+  rfbErr=rfbAndroidLog;
+}
 
 
 

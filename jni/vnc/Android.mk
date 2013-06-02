@@ -38,11 +38,12 @@ LIBVNCSERVER_SRC_FILES:= \
 	$(LIBVNCSERVER_ROOT)/common/turbojpeg.c
 
 LOCAL_CFLAGS  +=  -Wall \
-									-O3 \
+									-O0 \
 									-DLIBVNCSERVER_WITH_WEBSOCKETS \
 									-DLIBVNCSERVER_HAVE_LIBPNG \
 									-DLIBVNCSERVER_HAVE_ZLIB \
-									-DLIBVNCSERVER_HAVE_LIBJPEG
+									-DLIBVNCSERVER_HAVE_LIBJPEG\
+									-fno-omit-frame-pointer
 
 LOCAL_LDLIBS +=  -llog -lz -ldl 
 

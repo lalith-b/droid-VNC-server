@@ -39,6 +39,7 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.text.Html;
@@ -107,7 +108,7 @@ public class MainActivity extends Activity
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-					setStateLabels(ServerManager.isServerRunning());		
+			setStateLabels(ServerManager.isServerRunning());		
 		}
 	}
 
@@ -146,6 +147,9 @@ public class MainActivity extends Activity
 		requestWindowFeature(Window.FEATURE_NO_TITLE); 
 
 		setContentView(R.layout.main);
+
+		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+		StrictMode.setThreadPolicy(policy); 
 
 		doBindService();
 

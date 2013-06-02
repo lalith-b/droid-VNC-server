@@ -4,14 +4,14 @@
     android:versionCode="58"
     android:versionName="1.1RC1" >
 
-    <uses-sdk android:minSdkVersion="4" />
+    <uses-sdk android:minSdkVersion="11" />
 
     <uses-permission android:name="android.permission.WRITE_SETTINGS" >
     </uses-permission>
    
     <application
         android:name="MainApplication"
-        android:debuggable="false" 
+        android:debuggable="true" 
         android:icon="@drawable/icon" 
         android:label="droid VNC server" >
         <activity

@@ -109,10 +109,10 @@ int keysym2scancode(rfbBool down, rfbKeySym c, rfbClientPtr cl, int *sh, int *al
     case 0xff50: return KEY_HOME;// home 
     case 0xFFC8: rfbShutdownServer(cl->screen,TRUE); return 0; //F11 disconnect
     case 0xFFC9:  
-    L("F12 closing...");    
-    exit(0); //F10 closes daemon
-    break;
-    case 0xffc1: down?rotate(-1):0; return 0; // F4 rotate 
+      L("F12 closing...");    
+      exit(0); //F10 closes daemon
+      break;
+    case 0xffc1: down ? rotate(-1):0; return 0; // F4 rotate 
     case 0xffff: return 158;// del -> back
     case 0xff55: return 229;// PgUp -> menu
     case 0xffcf: return 127;// F2 -> search
@@ -126,67 +126,66 @@ int keysym2scancode(rfbBool down, rfbKeySym c, rfbClientPtr cl, int *sh, int *al
 
     case 50081:
     case 225: (*alt)=1;
-    if (real) return 48; //a with acute
-    return 30; //a with acute -> a with ring above
+      if (real) return 48; //a with acute
+        return 30; //a with acute -> a with ring above
     case 50049: 
     case 193:(*sh)=1; (*alt)=1; 
-    if (real) return 48; //A with acute 
-    return 30; //A with acute -> a with ring above
+      if (real) return 48; //A with acute 
+        return 30; //A with acute -> a with ring above
     case 50089:
     case 233: (*alt)=1; return 18; //e with acute
     case 50057:  
     case 201:(*sh)=1; (*alt)=1; return 18; //E with acute
     case 50093:
     case 0xffbf: (*alt)=1; 
-    if (real) return 36; //i with acute 
-    return 23; //i with acute -> i with grave
+      if (real) return 36; //i with acute 
+        return 23; //i with acute -> i with grave
     case 50061:
     case 205: (*sh)=1; (*alt)=1; 
-    if (real) return 36; //I with acute 
-return 23; //I with acute -> i with grave
+      if (real) return 36; //I with acute 
+        return 23; //I with acute -> i with grave
     case 50099: 
-      case 243:(*alt)=1; 
+    case 243:(*alt)=1; 
       if (real) return 16; //o with acute 
-      return 24; //o with acute -> o with grave
+        return 24; //o with acute -> o with grave
     case 50067: 
-      case 211:(*sh)=1; (*alt)=1; 
+    case 211:(*sh)=1; (*alt)=1; 
       if (real) return 16; //O with acute 
-      return 24; //O with acute -> o with grave
+        return 24; //O with acute -> o with grave
     case 50102:
-      case 246: (*alt)=1; return 25; //o with diaeresis
-      case 50070:
-        case 214: (*sh)=1; (*alt)=1; return 25; //O with diaeresis
-        case 50577: 
-          case 245:(*alt)=1; 
-          if (real) return 19; //Hungarian o 
-          return 25; //Hungarian o -> o with diaeresis
+    case 246: (*alt)=1; return 25; //o with diaeresis
+    case 50070:
+    case 214: (*sh)=1; (*alt)=1; return 25; //O with diaeresis
+    case 50577: 
+    case 245:(*alt)=1; 
+      if (real) return 19; //Hungarian o 
+        return 25; //Hungarian o -> o with diaeresis
     case 50576:
-      case 213: (*sh)=1; (*alt)=1; 
+    case 213: (*sh)=1; (*alt)=1; 
       if (real) return 19; //Hungarian O 
-      return 25; //Hungarian O -> O with diaeresis
+        return 25; //Hungarian O -> O with diaeresis
     case 50106:
-      // 		case 0xffbe: (*alt)=1; 
-      // 			if (real) return 17; //u with acute 
-      // 			return 22; //u with acute -> u with grave
-      case 50074:
-        case 218: (*sh)=1; (*alt)=1; 
-        if (real) return 17; //U with acute 
+// 		case 0xffbe: (*alt)=1; 
+// 			if (real) return 17; //u with acute 
+// 			return 22; //u with acute -> u with grave
+    case 50074:
+    case 218: (*sh)=1; (*alt)=1; 
+      if (real) return 17; //U with acute 
         return 22; //U with acute -> u with grave
     case 50108:
-      case 252: (*alt)=1; return 47; //u with diaeresis
-      case 50076: 
-        case 220:(*sh)=1; (*alt)=1; return 47; //U with diaeresis
-        case 50609:
-          case 251: (*alt)=1; 
-          if (real) return 45; //Hungarian u 
-          return 47; //Hungarian u -> u with diaeresis
+    case 252: (*alt)=1; return 47; //u with diaeresis
+    case 50076: 
+    case 220:(*sh)=1; (*alt)=1; return 47; //U with diaeresis
+    case 50609:
+    case 251: (*alt)=1; 
+      if (real) return 45; //Hungarian u 
+        return 47; //Hungarian u -> u with diaeresis
     case 50608:
-      case 219: (*sh)=1; (*alt)=1; 
+    case 219: (*sh)=1; (*alt)=1; 
       if (real) return 45; //Hungarian U 
-      return 47; //Hungarian U -> U with diaeresis
-
-    }
-    return 0;
+        return 47; //Hungarian U -> U with diaeresis
+  }
+  return 0;
 }
 
 
@@ -298,12 +297,12 @@ void ptrEvent(int buttonMask, int x, int y, rfbClientPtr cl)
     middleClicked=1;
     suinput_press( inputfd,KEY_END);
   }
-    else if (middleClicked)// mid btn released
-    {
-      middleClicked=0;
-      suinput_release( inputfd,KEY_END);
-    }
-    }
+  else if (middleClicked)// mid btn released
+  {
+    middleClicked=0;
+    suinput_release( inputfd,KEY_END);
+  }
+}
 
 
 inline void transformTouchCoordinates(int *x, int *y,int width,int height)

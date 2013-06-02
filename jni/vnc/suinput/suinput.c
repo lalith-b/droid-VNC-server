@@ -182,7 +182,7 @@ int suinput_open(const char* device_name, const struct input_id* id)
     can also fail and reset errno, therefore we store the original one
     and reset it before returning.
   */
-    L("Init failed, errno: %d (%s)", errno, strerror(errno));
+    // L("Init failed, errno: %d (%s)", errno, strerror(errno));
 
     original_errno = errno;
 
