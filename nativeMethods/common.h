@@ -44,7 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "screenFormat.h"
 
-#define L(...) do{ __android_log_print(ANDROID_LOG_INFO,"VNCserver",__VA_ARGS__);printf(__VA_ARGS__); } while (0);
+#define L(...) do{ __android_log_print(ANDROID_LOG_INFO,"VNCserverC",__VA_ARGS__);printf(__VA_ARGS__); } while (0);
 #endif
 
 struct fbinfo {

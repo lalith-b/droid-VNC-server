@@ -20,11 +20,15 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
-import android.text.ClipboardManager;
+import android.content.ClipboardManager;
 import android.util.Log;
 import android.widget.Toast;
 
 public class ServerManager extends Service {
+	
+	private static final int DEFAULT_IPC_RECV_PORT  = 13131;
+	private static final int DEFAULT_IPC_SEND_PORT = 13132;
+	
 	SharedPreferences preferences;
 	private static PowerManager.WakeLock wakeLock = null;
 
@@ -39,8 +43,11 @@ public class ServerManager extends Service {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-
+		// After android 4.2, we will get exception when we doing socket on main thread.
+		//HandlerThread thread = new HandlerThread("socket_with_vnc_service_thread");
+		//thread.start();
 		handler = new Handler(Looper.getMainLooper());
+		//handler = new Handler(Looper.getMainLooper());
 		preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
 		if (serverConnection != null) {
@@ -200,31 +207,37 @@ public class ServerManager extends Service {
 	}
 
 	void killServer() {
+		DatagramSocket clientSocket = null;
 		try {
-			DatagramSocket clientSocket = new DatagramSocket();
+			clientSocket = new DatagramSocket();
 			InetAddress addr = InetAddress.getLocalHost();
 			String toSend = "~KILL|";
 			byte[] buffer = toSend.getBytes();
 
 			DatagramPacket question = new DatagramPacket(buffer, buffer.length,
-					addr, 13132);
+					addr, DEFAULT_IPC_SEND_PORT);
 			clientSocket.send(question);
 		} catch (Exception e) {
 
+		}finally {
+			if(clientSocket != null) {
+				clientSocket.close();
+			}
 		}
 	}
 
 	public static boolean isServerRunning() {
+		DatagramSocket clientSocket = null;
 		try {
 			byte[] receiveData = new byte[1024];
-			DatagramSocket clientSocket = new DatagramSocket();
+			clientSocket = new DatagramSocket();
 			InetAddress addr = InetAddress.getLocalHost();
 
 			clientSocket.setSoTimeout(100);
 			String toSend = "~PING|";
 			byte[] buffer = toSend.getBytes();
 
-			DatagramPacket question = new DatagramPacket(buffer, buffer.length, addr, 13132);
+			DatagramPacket question = new DatagramPacket(buffer, buffer.length, addr, DEFAULT_IPC_SEND_PORT);
 			clientSocket.send(question);
 
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
@@ -238,8 +251,13 @@ public class ServerManager extends Service {
 			else
 				return false;
 		} catch (Exception e) {
+			e.printStackTrace();
 			Log.e(MainActivity.VNC_LOG, "isServerRunning() Error: " + e);
 			return false;
+		}finally {
+			if(clientSocket != null) {
+				clientSocket.close();
+			}
 		}
 	}
 
@@ -254,7 +272,7 @@ public class ServerManager extends Service {
 		@Override
 		public void run() {
 			try {
-				server = new DatagramSocket(13131);
+				server = new DatagramSocket(DEFAULT_IPC_RECV_PORT);
 				log("Listening...");
 
 				while (!finished) {

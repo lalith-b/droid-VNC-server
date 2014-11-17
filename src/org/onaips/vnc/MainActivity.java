@@ -1,4 +1,3 @@
-
 package org.onaips.vnc;
 
 import java.io.BufferedReader;
@@ -37,8 +36,10 @@ import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.text.Html;
@@ -48,53 +49,78 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.Window;
 import android.view.animation.Animation;
 import android.view.animation.Animation.AnimationListener;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity 
-{      
+public class MainActivity extends Activity {
 	private static final int MENU_QUIT = 0;
-	private static final int MENU_HELP = 1;  
+	private static final int MENU_HELP = 1;
 	private static final int MENU_ONAIPS = 2;
 	private static final int MENU_SENDLOG = 3;
 	private static final int MENU_REVERSE_CONNECTION = 4;
 
 	static final int APP_ID = 123;
-	static final String VNC_LOG ="VNCserver";
-	
+	static final String VNC_LOG = "VNCserverJAVA";
+
 	private ServerManager s = null;
-	private Animation buttonAnimation=null;
+	private Animation buttonAnimation = null;
 	private SharedPreferences preferences;
 	private AlertDialog startDialog;
+	private Handler uiHandler = new Handler();
+	private ActivityUpdateReceiver activityUpdateReceiver = null;
 
 	void doBindService() {
 		bindService(new Intent(this, ServerManager.class), mConnection,
 				Context.BIND_AUTO_CREATE);
 	}
+	
+	void doUnbindService() {
+		this.unbindService(mConnection);
+	}
 
 	@Override
-	public void onResume()
-	{
+	public void onResume() {
 		IntentFilter i;
 		i = new IntentFilter("org.onaips.vnc.ACTIVITY_UPDATE");
-		ActivityUpdateReceiver receiver=new ActivityUpdateReceiver();
-		this.getBaseContext().registerReceiver(receiver, i);
+		activityUpdateReceiver = new ActivityUpdateReceiver();
+		registerReceiver(activityUpdateReceiver, i);
 
 		super.onResume();
 	}
+	
+	
+
+	@Override
+	protected void onPause() {
+		// TODO Auto-generated method stub
+		super.onPause();
+		
+		if(activityUpdateReceiver != null) {
+			unregisterReceiver(activityUpdateReceiver);
+			activityUpdateReceiver = null;
+		}
+	}
 
 
-	public class ActivityUpdateReceiver extends BroadcastReceiver
-	{
+
+	public class ActivityUpdateReceiver extends BroadcastReceiver {
 		@Override
-		public void onReceive(Context context, Intent intent)//this method receives broadcast messages. Be sure to modify AndroidManifest.xml file in order to enable message receiving
+		public void onReceive(Context context, Intent intent)// this method
+																// receives
+																// broadcast
+																// messages. Be
+																// sure to
+																// modify
+																// AndroidManifest.xml
+																// file in order
+																// to enable
+																// message
+																// receiving
 		{
 			log("ActivityUpdateReceiver.onReceive");
 			try {
@@ -103,12 +129,13 @@ public class MainActivity extends Activity
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
-			log("ServerManager.isServerRunning() = "+ServerManager.isServerRunning());
-			setStateLabels(ServerManager.isServerRunning());		
+
+			//log("ServerManager.isServerRunning() = "
+			//		+ ServerManager.isServerRunning());
+			//setStateLabels(ServerManager.isServerRunning());
+			checkServerStatus();
 		}
 	}
-
 
 	private ServiceConnection mConnection = new ServiceConnection() {
 
@@ -121,46 +148,66 @@ public class MainActivity extends Activity
 		}
 	};
 
-	@Override  
-	protected void onDestroy()
-	{
+	@Override
+	protected void onDestroy() {
 		super.onDestroy();
 		unregisterReceiver(mReceiver);
+		doUnbindService();
+		if(activityUpdateReceiver != null) {
+			unregisterReceiver(activityUpdateReceiver);
+			activityUpdateReceiver = null;
+		}
 	}
 
-	//rodar vnc com acc   
+	// rodar vnc com acc
 
+	private void checkServerStatus() {
+		AsyncTask<Void, Void, Boolean> checkAsyncTask = new AsyncTask<Void, Void, Boolean>() {
 
- 
+			@Override
+			protected Boolean doInBackground(Void... arg0) {
+				boolean running = ServerManager.isServerRunning();
+				return running;
+			}
+
+			@Override
+			protected void onPostExecute(final Boolean result) {
+				uiHandler.post(new Runnable() {
+					public void run() {
+						setStateLabels(result);
+					}
+				});
+			}
+		};
+		checkAsyncTask.execute();
+	}
 
 	/** Called when the activity is first created. */
 	@Override
-	public void onCreate(Bundle savedInstanceState)
-	{
-		super.onCreate(savedInstanceState);  
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 
-		//requestWindowFeature(Window.FEATURE_NO_TITLE); 
+		// requestWindowFeature(Window.FEATURE_NO_TITLE);
 
 		setContentView(R.layout.main);
 
 		doBindService();
 
-
 		// Initialize preferences
 		preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
-		boolean root=preferences.getBoolean("asroot",true);
-		if (!hasRootPermission() && root)
-		{
+		boolean root = preferences.getBoolean("asroot", true);
+		if (!hasRootPermission() && root) {
 			log("You do not have root permissions...!!!");
 			startDialog = new AlertDialog.Builder(this).create();
 			startDialog.setTitle("Cannot continue");
-			startDialog.setMessage("You do not have root permissions.\nPlease root your phone first!\n\nDo you want to continue anyway?");
+			startDialog
+					.setMessage("You do not have root permissions.\nPlease root your phone first!\n\nDo you want to continue anyway?");
 			startDialog.setIcon(R.drawable.icon);
 
 			startDialog.setButton("Yes", new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface arg0, int arg1) {
-					Editor e=preferences.edit();
+					Editor e = preferences.edit();
 					e.putBoolean("asroot", false);
 					e.commit();
 
@@ -176,20 +223,24 @@ public class MainActivity extends Activity
 		}
 
 		showInitialScreen(false);
-		setStateLabels(ServerManager.isServerRunning());
+
+		//setStateLabels(ServerManager.isServerRunning());
+		checkServerStatus();
 
 		// register wifi event receiver
-		registerReceiver(mReceiver,  new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+		registerReceiver(mReceiver, new IntentFilter(
+				ConnectivityManager.CONNECTIVITY_ACTION));
 
 		findViewById(R.id.Button01).setOnClickListener(new OnClickListener() {
 			public void onClick(View arg0) {
-				final Button b=(Button)findViewById(R.id.Button01);
-				
-				buttonAnimation=AnimationUtils.loadAnimation(MainActivity.this, R.anim.animation);
+				final Button b = (Button) findViewById(R.id.Button01);
+
+				buttonAnimation = AnimationUtils.loadAnimation(
+						MainActivity.this, R.anim.animation);
 				buttonAnimation.setAnimationListener(new AnimationListener() {
 					public void onAnimationEnd(Animation animation) {
 						b.setEnabled(true);
-						//b.setVisibility(View.INVISIBLE);
+						// b.setVisibility(View.INVISIBLE);
 					}
 
 					public void onAnimationRepeat(Animation animation) {
@@ -197,62 +248,56 @@ public class MainActivity extends Activity
 
 					public void onAnimationStart(Animation animation) {
 						b.setEnabled(false);
-
-						if (ServerManager.isServerRunning())
-							stopServer();
-						else
-							startServer();
+						new Thread() {
+							public void run() {
+								if (ServerManager.isServerRunning())
+									stopServer();
+								else
+									startServer();
+							}
+						}.start();
+						
 					}
 				});
 				b.startAnimation(buttonAnimation);
 
 				return;
 			}
-		}) ;
+		});
 		findViewById(R.id.Button02).setOnClickListener(new OnClickListener() {
 			public void onClick(View arg0) {
 				restartServer();
 				return;
 			}
 		});
-		
-		IntentFilter i;
-		i = new IntentFilter("org.onaips.vnc.ACTIVITY_UPDATE");
-		ActivityUpdateReceiver receiver=new ActivityUpdateReceiver();
-		this.getBaseContext().registerReceiver(receiver, i);
 	}
 
-	
-	
-	public void log(String s)
-	{
-		Log.v(VNC_LOG,s);
+	public void log(String s) {
+		Log.v(VNC_LOG, s);
 	}
 
-
-
-	public String packageVersion()
-	{
+	public String packageVersion() {
 		String version = "";
 		try {
-			PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
-			version = pi.versionName;     
+			PackageInfo pi = getPackageManager().getPackageInfo(
+					getPackageName(), 0);
+			version = pi.versionName;
 		} catch (NameNotFoundException e) {
-			log("onOptionsItemSelected: "+ e.getMessage());
-		};
+			log("onOptionsItemSelected: " + e.getMessage());
+		}
+		;
 		return version;
 	}
 
-
-	public void showInitialScreen(boolean forceShow)
-	{
+	public void showInitialScreen(boolean forceShow) {
 		// Initialize preferences
-		preferences = PreferenceManager.getDefaultSharedPreferences(this );
+		preferences = PreferenceManager.getDefaultSharedPreferences(this);
 		SharedPreferences.Editor editor = preferences.edit();
 
-		String version=packageVersion();
+		String version = packageVersion();
 
-		if ((!forceShow) && (version.equals(preferences.getString("version", ""))))
+		if ((!forceShow)
+				&& (version.equals(preferences.getString("version", ""))))
 			return;
 
 		editor.putString("version", version);
@@ -260,34 +305,38 @@ public class MainActivity extends Activity
 
 		startDialog = new AlertDialog.Builder(this).create();
 		startDialog.setTitle("droid VNC server");
-		startDialog.setMessage(Html.fromHtml("Welcome to droid VNC server version " + version + ".<br>This is beta software so please provide some feedback about your experience!<br><br>Best Regards, @oNaiPs"));
+		startDialog
+				.setMessage(Html
+						.fromHtml("Welcome to droid VNC server version "
+								+ version
+								+ ".<br>This is beta software so please provide some feedback about your experience!<br><br>Best Regards, @oNaiPs"));
 		startDialog.setIcon(R.drawable.icon);
 
+		startDialog.setButton(AlertDialog.BUTTON1, "OK",
+				new DialogInterface.OnClickListener() {
 
-		startDialog.setButton(AlertDialog.BUTTON1,"OK", new DialogInterface.OnClickListener() {
-
-			public void onClick(DialogInterface arg0, int arg1) {
-				startDialog.dismiss();			
-			}
-		});
+					public void onClick(DialogInterface arg0, int arg1) {
+						startDialog.dismiss();
+					}
+				});
 
 		startDialog.setButton2("Donate", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface arg0, int arg1) {
-				Intent myIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=org.onaips.donate"));
+				Intent myIntent = new Intent(Intent.ACTION_VIEW, Uri
+						.parse("market://details?id=org.onaips.donate"));
 				startActivity(myIntent);
 
-			} 
+			}
 		});
 
 		startDialog.show();
 
 	}
 
-	public void showTextOnScreen(final String t)
-	{
-		runOnUiThread(new Runnable(){
+	public void showTextOnScreen(final String t) {
+		runOnUiThread(new Runnable() {
 			public void run() {
-				Toast.makeText(MainActivity.this,t,Toast.LENGTH_LONG).show();
+				Toast.makeText(MainActivity.this, t, Toast.LENGTH_LONG).show();
 			}
 		});
 	}
@@ -296,76 +345,81 @@ public class MainActivity extends Activity
 		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.menu, menu);
 
-		menu.add(0, MENU_SENDLOG  ,0,"Report issue");
-		menu.add(0, MENU_ONAIPS   ,0,"About");
-		menu.add(0, MENU_HELP     ,0, "Help");
+		menu.add(0, MENU_SENDLOG, 0, "Report issue");
+		menu.add(0, MENU_ONAIPS, 0, "About");
+		menu.add(0, MENU_HELP, 0, "Help");
 		menu.add(0, MENU_REVERSE_CONNECTION, 0, "Reverse\nConnection");
-		menu.add(0, MENU_QUIT     ,0, "Close");
+		menu.add(0, MENU_QUIT, 0, "Close");
 
-
-		return true; 
+		return true;
 	}
 
+	public void setStateLabels(boolean state) {
 
-	public void setStateLabels(boolean state)
-	{
+		TextView stateLabel = (TextView) findViewById(R.id.stateLabel);
+		stateLabel.setText(state ? "Running" : "Stopped");
 
-		
-		TextView stateLabel=(TextView)findViewById(R.id.stateLabel);
-		stateLabel.setText(state?"Running":"Stopped");
+		stateLabel.setTextColor(state ? Color.rgb(114, 182, 43) : Color.rgb(
+				234, 113, 29));
 
+		TextView t = (TextView) findViewById(R.id.TextView01);
 
-		stateLabel.setTextColor(state?Color.rgb(114,182,43):Color.rgb(234,113,29));
-
-		TextView t=(TextView)findViewById(R.id.TextView01);
- 
-		Button b=(Button)findViewById(R.id.Button01);
+		Button b = (Button) findViewById(R.id.Button01);
 		b.clearAnimation();
-		Button b2=(Button)findViewById(R.id.Button02);
-		if (state)
-		{
-			String port=preferences.getString("port", "5901");
+		Button b2 = (Button) findViewById(R.id.Button02);
+		if (state) {
+			String port = preferences.getString("port", "5901");
 			String httpport;
-			try
-			{
-				int port1=Integer.parseInt(port);
-				port=String.valueOf(port1);
-				httpport=String.valueOf(port1-100);
-			}
-			catch(NumberFormatException e)
-			{
-				port="5901";
-				httpport="5801";
+			try {
+				int port1 = Integer.parseInt(port);
+				port = String.valueOf(port1);
+				httpport = String.valueOf(port1 - 100);
+			} catch (NumberFormatException e) {
+				port = "5901";
+				httpport = "5801";
 			}
 
-			String ip=getIpAddress();
+			String ip = getIpAddress();
 			if (ip.equals(""))
-				t.setText(Html.fromHtml("Not connected to a network.<br> You can connect through USB with:<br>localhost:" + port + "<br>or<br>http://localhost:" + httpport + "<br>(use adb to forward ports)</font>"));
+				t.setText(Html
+						.fromHtml("Not connected to a network.<br> You can connect through USB with:<br>localhost:"
+								+ port
+								+ "<br>or<br>http://localhost:"
+								+ httpport
+								+ "<br>(use adb to forward ports)</font>"));
 			else
-				t.setText(Html.fromHtml("<font align=\"center\">Connect to:<br>" + ip+":" + port + "<br>or<br>http://" + ip + ":" + httpport + "</font>"));	
+				t.setText(Html
+						.fromHtml("<font align=\"center\">Connect to:<br>" + ip
+								+ ":" + port + "<br>or<br>http://" + ip + ":"
+								+ httpport + "</font>"));
 
-			b.setBackgroundDrawable(getResources().getDrawable(R.drawable.btnstop_normal));
+			b.setBackgroundDrawable(getResources().getDrawable(
+					R.drawable.btnstop_normal));
 			b2.setVisibility(View.VISIBLE);
 
-		} 
-		else
-		{
+		} else {
 			t.setText("");
-			b.setBackgroundDrawable(getResources().getDrawable(R.drawable.btnstart_normal));
+			b.setBackgroundDrawable(getResources().getDrawable(
+					R.drawable.btnstart_normal));
 			b2.setVisibility(View.INVISIBLE);
-		}  
+		}
 
-	} 
+	}
 
 	public String getIpAddress() {
 		try {
 			String ipv4;
-			for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+			for (Enumeration<NetworkInterface> en = NetworkInterface
+					.getNetworkInterfaces(); en.hasMoreElements();) {
 				NetworkInterface intf = en.nextElement();
-				for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+				for (Enumeration<InetAddress> enumIpAddr = intf
+						.getInetAddresses(); enumIpAddr.hasMoreElements();) {
 					InetAddress inetAddress = enumIpAddr.nextElement();
 					if (!inetAddress.isLoopbackAddress()) {
-						if (!inetAddress.isLoopbackAddress() && InetAddressUtils.isIPv4Address(ipv4=inetAddress.getHostAddress())) 
+						if (!inetAddress.isLoopbackAddress()
+								&& InetAddressUtils
+										.isIPv4Address(ipv4 = inetAddress
+												.getHostAddress()))
 							return ipv4;
 					}
 				}
@@ -376,42 +430,39 @@ public class MainActivity extends Activity
 		return "";
 	}
 
-	public void restartServer()
-	{
+	public void restartServer() {
 
 		startDialog = new AlertDialog.Builder(this).create();
 		startDialog.setTitle("Already running");
 		startDialog.setMessage("Restart server?");
-		startDialog.setButton(AlertDialog.BUTTON1,"Yes", new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface arg0, int arg1) {
-				stopServer();
-				try {
-					Thread.sleep(2000);
-				} catch (InterruptedException e) {
-				}
-				startServer();
-			}
-		});
+		startDialog.setButton(AlertDialog.BUTTON1, "Yes",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface arg0, int arg1) {
+						stopServer();
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+						}
+						startServer();
+					}
+				});
 
 		startDialog.setButton2("No", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface arg0, int arg1) {
-			} 
+			}
 		});
 		startDialog.show();
 
 	}
 
-
-	public void startServer()
-	{
+	public void startServer() {
 		s.startServer();
-		Timer t=new Timer();
+		Timer t = new Timer();
 		t.schedule(new TimerTask() {
 
 			@Override
 			public void run() {
-				if (!ServerManager.isServerRunning())
-				{
+				if (!ServerManager.isServerRunning()) {
 					runOnUiThread(new Runnable() {
 
 						public void run() {
@@ -420,50 +471,50 @@ public class MainActivity extends Activity
 							setStateLabels(ServerManager.isServerRunning());
 						}
 					});
-				} 
+				}
 			}
-		},2000);
+		}, 2000);
 	}
-	public void stopServer()
-	{
+
+	public void stopServer() {
 		s.killServer();
-		Timer t=new Timer();
+		Timer t = new Timer();
 		t.schedule(new TimerTask() {
 
 			@Override
 			public void run() {
-				if (ServerManager.isServerRunning())
-				{
+				if (ServerManager.isServerRunning()) {
 					runOnUiThread(new Runnable() {
 
 						public void run() {
 							showTextOnScreen("Could not stop server :(");
 							log("Could not stop server :(");
-							setStateLabels(ServerManager.isServerRunning());							
+							setStateLabels(ServerManager.isServerRunning());
 						}
 					});
 				}
 			}
-		},4000);
+		}, 4000);
 	}
 
-	public void showHelp()
-	{
+	public void showHelp() {
 		new AlertDialog.Builder(this)
-		.setTitle("Help")
-		.setMessage(Html.fromHtml("Mouse Mappings:<br><br>Right Click -> Back<br>Middle Click -> End Call<br>Left Click -> Touch<br><br>Keyboard Mappings<br><br>" +
-				"Home Key -> Home<br>Escape -> Back<br>Page Up ->Menu<br>Left Ctrl -> Search<br>PgDown -> Start Call<br>" +
-		"End Key -> End Call<br>F4 -> Rotate<br>F11 -> Disconnect<br>F12 -> Stop Server Daemon"))
-		.setPositiveButton("Quit", null)
-		.setNegativeButton("Open Website", new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface arg0, int arg1) {
-				Intent myIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.onaips.com"));
-				startActivity(myIntent);
-			}
-		})
-		.show();
+				.setTitle("Help")
+				.setMessage(
+						Html.fromHtml("Mouse Mappings:<br><br>Right Click -> Back<br>Middle Click -> End Call<br>Left Click -> Touch<br><br>Keyboard Mappings<br><br>"
+								+ "Home Key -> Home<br>Escape -> Back<br>Page Up ->Menu<br>Left Ctrl -> Search<br>PgDown -> Start Call<br>"
+								+ "End Key -> End Call<br>F4 -> Rotate<br>F11 -> Disconnect<br>F12 -> Stop Server Daemon"))
+				.setPositiveButton("Quit", null)
+				.setNegativeButton("Open Website",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface arg0, int arg1) {
+								Intent myIntent = new Intent(
+										Intent.ACTION_VIEW, Uri
+												.parse("http://www.onaips.com"));
+								startActivity(myIntent);
+							}
+						}).show();
 	}
-
 
 	// This method is called once the menu is selected
 	public boolean onOptionsItemSelected(MenuItem item) {
@@ -476,7 +527,7 @@ public class MainActivity extends Activity
 
 			showTextOnScreen("Don't forget to stop/start the server after changes");
 
-			break; 
+			break;
 		case MENU_QUIT:
 			System.exit(1);
 			break;
@@ -484,24 +535,24 @@ public class MainActivity extends Activity
 			showHelp();
 			break;
 		case MENU_REVERSE_CONNECTION:
-			if (ServerManager.isServerRunning())
-			{
+			if (ServerManager.isServerRunning()) {
 				startDialog = new AlertDialog.Builder(this).create();
 				startDialog.setTitle("Already running");
 				startDialog.setMessage("Restart server?");
-				startDialog.setButton(AlertDialog.BUTTON1,"Yes", new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface arg0, int arg1) {
-						startReverseConnection();
-					}
-				});
+				startDialog.setButton(AlertDialog.BUTTON1, "Yes",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface arg0, int arg1) {
+								startReverseConnection();
+							}
+						});
 
-				startDialog.setButton2("Cancel", new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface arg0, int arg1) {
-					} 
-				});
+				startDialog.setButton2("Cancel",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface arg0, int arg1) {
+							}
+						});
 				startDialog.show();
-			}
-			else
+			} else
 				startReverseConnection();
 
 			break;
@@ -511,47 +562,54 @@ public class MainActivity extends Activity
 		case MENU_ONAIPS:
 
 			new AlertDialog.Builder(this)
-			.setTitle("About")
-			.setMessage(Html.fromHtml("version " + packageVersion() + "<br><br>Code: @oNaiPs<br><br>Graphics: ricardomendes.net<br><br>Under the GPLv3"))
-			.setPositiveButton("Close", null)
-			.setNegativeButton("Open Website", new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface arg0, int arg1) {
-					Intent myIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://onaips.com"));
-					startActivity(myIntent);
+					.setTitle("About")
+					.setMessage(
+							Html.fromHtml("version "
+									+ packageVersion()
+									+ "<br><br>Code: @oNaiPs<br><br>Graphics: ricardomendes.net<br><br>Under the GPLv3"))
+					.setPositiveButton("Close", null)
+					.setNegativeButton("Open Website",
+							new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface arg0,
+										int arg1) {
+									Intent myIntent = new Intent(
+											Intent.ACTION_VIEW, Uri
+													.parse("http://onaips.com"));
+									startActivity(myIntent);
 
-				}
-			})
-			.show();
+								}
+							}).show();
 			break;
 
-		} 
-		return true;  
+		}
+		return true;
 	}
 
-	public void startReverseConnection()
-	{
+	public void startReverseConnection() {
 
 		AlertDialog.Builder alert = new AlertDialog.Builder(this);
 
 		alert.setTitle("Reverse Connection");
 		alert.setMessage("Input <host:port>:");
 
-		// Set an EditText view to get user input 
+		// Set an EditText view to get user input
 		final EditText input = new EditText(this);
 
 		alert.setView(input);
 
-		alert.setPositiveButton("Start server", new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface dialog, int whichButton) {
-				s.startReverseConnection(input.getText().toString());
-			}
-		});
+		alert.setPositiveButton("Start server",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+						s.startReverseConnection(input.getText().toString());
+					}
+				});
 
-		alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface dialog, int whichButton) {
-				// Canceled.
-			}
-		});
+		alert.setNegativeButton("Cancel",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+						// Canceled.
+					}
+				});
 
 		alert.show();
 	}
@@ -567,7 +625,7 @@ public class MainActivity extends Activity
 				}
 			}
 		} catch (Exception e) {
-			//log( "Can't obtain root - Here is what I know: "+e.getMessage());
+			// log( "Can't obtain root - Here is what I know: "+e.getMessage());
 			rooted = false;
 		}
 
@@ -584,82 +642,106 @@ public class MainActivity extends Activity
 	public static final String EXTRA_FORMAT = "com.xtralogic.logcollector.intent.extra.FORMAT";
 	public static final String EXTRA_BUFFER = "com.xtralogic.logcollector.intent.extra.BUFFER";
 
-	void collectAndSendLog(){
+	void collectAndSendLog() {
 		final PackageManager packageManager = getPackageManager();
 		final Intent intent = new Intent(ACTION_SEND_LOG);
-		List<ResolveInfo> list = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+		List<ResolveInfo> list = packageManager.queryIntentActivities(intent,
+				PackageManager.MATCH_DEFAULT_ONLY);
 		final boolean isInstalled = list.size() > 0;
 
-		if (!isInstalled){
+		if (!isInstalled) {
 			new AlertDialog.Builder(this)
-			.setTitle(getString(R.string.app_name))
-			.setIcon(android.R.drawable.ic_dialog_info)
-			.setMessage("Please install Log Collector application to collect the device log and send it to dev.")
-			.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener(){
-				public void onClick(DialogInterface dialog, int whichButton){
-					Intent marketIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=pname:" + LOG_COLLECTOR_PACKAGE_NAME));
-					marketIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-					startActivity(marketIntent); 
-				}
-			})
-			.setNegativeButton(android.R.string.cancel, null)
-			.show();
-		}
-		else{
+					.setTitle(getString(R.string.app_name))
+					.setIcon(android.R.drawable.ic_dialog_info)
+					.setMessage(
+							"Please install Log Collector application to collect the device log and send it to dev.")
+					.setPositiveButton(android.R.string.ok,
+							new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface dialog,
+										int whichButton) {
+									Intent marketIntent = new Intent(
+											Intent.ACTION_VIEW,
+											Uri.parse("market://search?q=pname:"
+													+ LOG_COLLECTOR_PACKAGE_NAME));
+									marketIntent
+											.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+									startActivity(marketIntent);
+								}
+							}).setNegativeButton(android.R.string.cancel, null)
+					.show();
+		} else {
 			new AlertDialog.Builder(this)
-			.setTitle(getString(R.string.app_name))
-			.setIcon(android.R.drawable.ic_dialog_info)
-			.setMessage("Do you want to send a bug report to the dev? Please specify what problem is ocurring.\n\n" +
-					"Make sure you started & stopped the server before submitting")
-			.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener(){
-				public void onClick(DialogInterface dialog, int whichButton){
-					intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-					intent.putExtra(EXTRA_SEND_INTENT_ACTION, Intent.ACTION_SENDTO);
-					final String email = "onaips@gmail.com";
-					intent.putExtra(EXTRA_DATA, Uri.parse("mailto:" + email));
-					intent.putExtra(EXTRA_ADDITIONAL_INFO,"Problem Description: \n\n\n\n---------DEBUG--------\n" + 
-					getString(R.string.device_info_fmt,getVersionNumber(getApplicationContext()),Build.MODEL,Build.VERSION.RELEASE, 
-							getFormattedKernelVersion(), Build.DISPLAY,Build.CPU_ABI));
-					intent.putExtra(Intent.EXTRA_SUBJECT, "droid VNC server: Debug Info");
-					intent.putExtra(EXTRA_FORMAT, "time");
+					.setTitle(getString(R.string.app_name))
+					.setIcon(android.R.drawable.ic_dialog_info)
+					.setMessage(
+							"Do you want to send a bug report to the dev? Please specify what problem is ocurring.\n\n"
+									+ "Make sure you started & stopped the server before submitting")
+					.setPositiveButton(android.R.string.ok,
+							new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface dialog,
+										int whichButton) {
+									intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+									intent.putExtra(EXTRA_SEND_INTENT_ACTION,
+											Intent.ACTION_SENDTO);
+									final String email = "onaips@gmail.com";
+									intent.putExtra(EXTRA_DATA,
+											Uri.parse("mailto:" + email));
+									intent.putExtra(
+											EXTRA_ADDITIONAL_INFO,
+											"Problem Description: \n\n\n\n---------DEBUG--------\n"
+													+ getString(
+															R.string.device_info_fmt,
+															getVersionNumber(getApplicationContext()),
+															Build.MODEL,
+															Build.VERSION.RELEASE,
+															getFormattedKernelVersion(),
+															Build.DISPLAY,
+															Build.CPU_ABI));
+									intent.putExtra(Intent.EXTRA_SUBJECT,
+											"droid VNC server: Debug Info");
+									intent.putExtra(EXTRA_FORMAT, "time");
 
-					//The log can be filtered to contain data relevant only to your app
-					String[] filterSpecs = new String[4];
-					filterSpecs[0] = VNC_LOG + ":I";
-					filterSpecs[1] = VNC_LOG + ":D";
-					filterSpecs[2] = VNC_LOG + ":V";
-					filterSpecs[3] = "*:S";
-					intent.putExtra(EXTRA_FILTER_SPECS, filterSpecs);
+									// The log can be filtered to contain data
+									// relevant only to your app
+									String[] filterSpecs = new String[4];
+									filterSpecs[0] = VNC_LOG + ":I";
+									filterSpecs[1] = VNC_LOG + ":D";
+									filterSpecs[2] = VNC_LOG + ":V";
+									filterSpecs[3] = "*:S";
+									intent.putExtra(EXTRA_FILTER_SPECS,
+											filterSpecs);
 
-					startActivity(intent);
-				}
-			})
-			.setNegativeButton(android.R.string.cancel, null)
-			.show();
+									startActivity(intent);
+								}
+							}).setNegativeButton(android.R.string.cancel, null)
+					.show();
 		}
 	}
 
-	private String getFormattedKernelVersion() 
-	{
+	private String getFormattedKernelVersion() {
 		String procVersionStr;
 
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader("/proc/version"), 256);
+			BufferedReader reader = new BufferedReader(new FileReader(
+					"/proc/version"), 256);
 			try {
 				procVersionStr = reader.readLine();
 			} finally {
 				reader.close();
 			}
 
-			final String PROC_VERSION_REGEX =
-				"\\w+\\s+" + /* ignore: Linux */
-				"\\w+\\s+" + /* ignore: version */
-				"([^\\s]+)\\s+" + /* group 1: 2.6.22-omap1 */
-				"\\(([^\\s@]+(?:@[^\\s.]+)?)[^)]*\\)\\s+" + /* group 2: (xxxxxx@xxxxx.constant) */
-				"\\([^)]+\\)\\s+" + /* ignore: (gcc ..) */
-				"([^\\s]+)\\s+" + /* group 3: #26 */
-				"(?:PREEMPT\\s+)?" + /* ignore: PREEMPT (optional) */
-				"(.+)"; /* group 4: date */
+			final String PROC_VERSION_REGEX = "\\w+\\s+" + /* ignore: Linux */
+			"\\w+\\s+" + /* ignore: version */
+			"([^\\s]+)\\s+" + /* group 1: 2.6.22-omap1 */
+			"\\(([^\\s@]+(?:@[^\\s.]+)?)[^)]*\\)\\s+" + /*
+														 * group 2:
+														 * (xxxxxx@xxxxx
+														 * .constant)
+														 */
+			"\\([^)]+\\)\\s+" + /* ignore: (gcc ..) */
+			"([^\\s]+)\\s+" + /* group 3: #26 */
+			"(?:PREEMPT\\s+)?" + /* ignore: PREEMPT (optional) */
+			"(.+)"; /* group 4: date */
 
 			Pattern p = Pattern.compile(PROC_VERSION_REGEX);
 			Matcher m = p.matcher(procVersionStr);
@@ -668,66 +750,66 @@ public class MainActivity extends Activity
 				log("Regex did not match on /proc/version: " + procVersionStr);
 				return "Unavailable";
 			} else if (m.groupCount() < 4) {
-				log("Regex match on /proc/version only returned " + m.groupCount()
-						+ " groups");
+				log("Regex match on /proc/version only returned "
+						+ m.groupCount() + " groups");
 				return "Unavailable";
 			} else {
-				return (new StringBuilder(m.group(1)).append("\n").append(
-						m.group(2)).append(" ").append(m.group(3)).append("\n")
-						.append(m.group(4))).toString();
+				return (new StringBuilder(m.group(1)).append("\n")
+						.append(m.group(2)).append(" ").append(m.group(3))
+						.append("\n").append(m.group(4))).toString();
 			}
-		} catch (IOException e) {  
-			log("IO Exception when getting kernel version for Device Info screen"+ e.getMessage() );
+		} catch (IOException e) {
+			log("IO Exception when getting kernel version for Device Info screen"
+					+ e.getMessage());
 
 			return "Unavailable";
 		}
 	}
 
-	private static String getVersionNumber(Context context) 
-	{
+	private static String getVersionNumber(Context context) {
 		String version = "?";
-		try 
-		{
-			PackageInfo packagInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+		try {
+			PackageInfo packagInfo = context.getPackageManager()
+					.getPackageInfo(context.getPackageName(), 0);
 			version = packagInfo.versionName;
-		} 
-		catch (PackageManager.NameNotFoundException e){};
+		} catch (PackageManager.NameNotFoundException e) {
+		}
+		;
 
 		return version;
 	}
 
-
-	static void writeCommand(OutputStream os, String command) throws Exception
-	{
+	static void writeCommand(OutputStream os, String command) throws Exception {
 		os.write((command + "\n").getBytes("ASCII"));
 	}
 
 	public BroadcastReceiver mReceiver = new BroadcastReceiver() {
-		@Override public void onReceive(Context context, Intent intent) {
-			NetworkInfo info = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-			if (info.getType() == ConnectivityManager.TYPE_MOBILE || info.getType()==ConnectivityManager.TYPE_WIFI) {
-				setStateLabels(ServerManager.isServerRunning());
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			NetworkInfo info = intent
+					.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
+			if (info.getType() == ConnectivityManager.TYPE_MOBILE
+					|| info.getType() == ConnectivityManager.TYPE_WIFI) {
+				//setStateLabels(ServerManager.isServerRunning());
+				checkServerStatus();
 
-			}  
+			}
 		}
 	};
 
-	static File findExecutableOnPath(String executableName)  
-	{  
+	static File findExecutableOnPath(String executableName) {
 
-		String systemPath = System.getenv("PATH");  
-		String[] pathDirs = systemPath.split(File.pathSeparator);  
+		String systemPath = System.getenv("PATH");
+		String[] pathDirs = systemPath.split(File.pathSeparator);
 
-		File fullyQualifiedExecutable = null;  
-		for (String pathDir : pathDirs)  
-		{  
-			File file = new File(pathDir, executableName);  
-			if (file.isFile())  
-			{  
-				fullyQualifiedExecutable = file;  
-				break;  
-			}  
-		}  
-		return fullyQualifiedExecutable;  
+		File fullyQualifiedExecutable = null;
+		for (String pathDir : pathDirs) {
+			File file = new File(pathDir, executableName);
+			if (file.isFile()) {
+				fullyQualifiedExecutable = file;
+				break;
+			}
+		}
+		return fullyQualifiedExecutable;
 	}
 }

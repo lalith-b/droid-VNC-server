@@ -18,6 +18,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 //this file implements a simple IPC connection with the Java GUI
+#include <string.h>
+#include <errno.h>
 
 #include "gui.h"
 #include "common.h"
@@ -46,7 +48,7 @@ int sendMsgToGui(char *buffer)
   server.sin_addr.s_addr = inet_addr("127.0.0.1");
   server.sin_port = htons(DEFAULT_IPC_RECV_PORT);
   length = sizeof(struct sockaddr_in);
-
+  L("sendMsgToGui:%s\n", buffer);
   n = sendto(sock,buffer,strlen(buffer),0,(struct sockaddr *)&server,length);
   if (n < 0) perror("Sendto");
 
@@ -77,7 +79,7 @@ int bindIPCserver()
   /* bind to a port */
   if(bind(hServerSocket,(struct sockaddr*)&Address,sizeof(Address)) == SOCKET_ERROR)
   {
-    L("\nCould not connect to IPC gui, another daemon already running?\n");
+    L("\nCould not connect to IPC gui, another daemon already running? error:%s\n", strerror(errno));
     sendMsgToGui("~SHOW|Could not connect to IPC gui, another daemon already running?\n");
 
     exit(-1);
@@ -105,7 +107,7 @@ void *handle_connections()
     n = recvfrom(hServerSocket,pBuffer,BUFFER_SIZE,0,(struct sockaddr *)&from,&fromlen);
     if (n < 0) perror("recvfrom");
 
-    //L("Recebido: %s\n",pBuffer);
+    L("Recebido: %s\n",pBuffer);
 
     if (strstr(pBuffer,"~PING|")!=NULL)
     {
