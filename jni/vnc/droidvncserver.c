@@ -110,7 +110,7 @@ rfbNewClientHookPtr clientHook(rfbClientPtr cl)
 	cl->clientGoneHook=(ClientGoneHookPtr)clientGone;
 
 	char *header="~CONNECTED|";
-	char *msg=malloc(sizeof(char)*((strlen(cl->host)) + strlen(header)+1));
+	char *msg=malloc(sizeof(char)*(strlen(cl->host) + strlen(header)+1+1));
 	msg[0]='\0';
 	strcat(msg,header);
 	strcat(msg,cl->host);
@@ -126,7 +126,7 @@ void CutText(char* str,int len, struct _rfbClientRec* cl)
 {
 	str[len]='\0';
 	char *header="~CLIP|\n";
-	char *msg=malloc(sizeof(char)*(strlen(str) + strlen(header)+1));
+	char *msg=malloc(sizeof(char)*(strlen(str) + strlen(header)+1+1));
 	msg[0]='\0';
 	strcat(msg,header);
 	strcat(msg,str);
