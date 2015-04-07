@@ -2,7 +2,7 @@
 
 # $ vnc-daemon -s 10 -m [fb|gb|adb] [start|stop|restart]
 
-DAEMON_PATH=/data/local
+DAEMON_PATH=/data/local/tmp
 
 usage="usage: $0 [-s N] [-m S] [start|stop|restart]"
 

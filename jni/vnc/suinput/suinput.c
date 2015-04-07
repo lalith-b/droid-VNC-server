@@ -76,14 +76,14 @@ int suinput_open(const char* device_name, const struct input_id* id, int width, 
     /* Key and button events */
      if (ioctl(uinput_fd, UI_SET_EVBIT, EV_KEY) == -1)
          goto err;
-//
-//     /* Key and button repetition events */
+
+     /* Key and button repetition events */
      if (ioctl(uinput_fd, UI_SET_EVBIT, EV_REP) == -1)
          goto err;
-//
-//     /* Relative pointer motions */
-//     if (ioctl(uinput_fd, UI_SET_EVBIT, EV_REL) == -1)
-//         goto err;
+
+     /* Relative pointer motions */
+     if (ioctl(uinput_fd, UI_SET_EVBIT, EV_REL) == -1)
+         goto err;
 
     /* Absolute pointer motions */
 
@@ -97,10 +97,10 @@ int suinput_open(const char* device_name, const struct input_id* id, int width, 
 
 
     /* Configure device to handle relative x and y axis. */
-//     if (ioctl(uinput_fd, UI_SET_RELBIT, REL_X) == -1)
-//         goto err;
-//     if (ioctl(uinput_fd, UI_SET_RELBIT, REL_Y) == -1)
-//         goto err;
+     if (ioctl(uinput_fd, UI_SET_RELBIT, REL_X) == -1)
+         goto err;
+     if (ioctl(uinput_fd, UI_SET_RELBIT, REL_Y) == -1)
+         goto err;
 
     /* Configure device to handle absolute x and y axis. */
     if (ioctl(uinput_fd, UI_SET_ABSBIT, ABS_X) == -1)
@@ -145,8 +145,7 @@ int suinput_open(const char* device_name, const struct input_id* id, int width, 
   However, my experiments show that the device is not ready to process input
   events even after a device creation event is received from udev.
   */
-
-    //sleep(2);
+    sleep(2);
 
     return uinput_fd;
 

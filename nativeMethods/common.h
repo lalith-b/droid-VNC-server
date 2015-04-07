@@ -77,14 +77,14 @@ void close_app();
 screenFormat screenformat;
 
 #ifdef NOAPP
-#define DVNC_FILES_PATH "/data/local/tmp"
-#define DVNC_LIB_PATH "/data/local/tmp"
+#define DVNC_FILES_PATH "/data/local/tmp/"
+#define DVNC_LIB_PATH "/data/local/tmp/"
 #else
 #define DVNC_FILES_PATH "/data/data/org.onaips.vnc/files/"
 #define DVNC_LIB_PATH "/data/data/org.onaips.vnc/lib/"
 #endif
 
 #define ARR_LEN(a) (sizeof(a)/sizeof(a)[0])
-static int compiled_sdks[] = {14,15,18,19};
+static int compiled_sdks[] = {14,15,18,19,21};
 
 #endif

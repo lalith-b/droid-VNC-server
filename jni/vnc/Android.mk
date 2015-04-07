@@ -43,7 +43,7 @@ LOCAL_CFLAGS  +=  -Wall -Wno-unused-variable -Wno-maybe-uninitialized -Wno-unuse
 									-DLIBVNCSERVER_HAVE_LIBPNG \
 									-DLIBVNCSERVER_HAVE_ZLIB \
 									-DLIBVNCSERVER_HAVE_LIBJPEG \
-#									-DNOAPP
+									-DNOAPP
 
 LOCAL_LDLIBS +=  -llog -lz -ldl
 
@@ -66,7 +66,8 @@ LOCAL_C_INCLUDES += \
 										$(LOCAL_PATH)/suinput \
 										$(LOCAL_PATH)/linux \
 										$(LOCAL_PATH)/../libpng \
-										$(LOCAL_PATH)/../libjpeg-turbo \
+										$(LOCAL_PATH)/../jpeg \
+										$(LOCAL_PATH)/../jpeg-turbo \
 										$(LOCAL_PATH)/../openssl/include \
 										$(LOCAL_PATH)/$(LIBVNCSERVER_ROOT)/libvncserver \
 										$(LOCAL_PATH)/$(LIBVNCSERVER_ROOT)/common \
