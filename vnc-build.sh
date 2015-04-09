@@ -8,7 +8,6 @@ PUSH_PATH=/sdcard/vnc/files
 DEPLOY_PATH=/data/local/tmp
 CWD=$(pwd)
 
-android=21
 usage="usage: $0 [-a N] -w -s"
 
 clean() {
@@ -28,7 +27,8 @@ build_wrapper() {
 
 deploy_vnc() {
     SERIAL=$1
-
+	android=($(adb -s ${SERIAL} shell getprop ro.build.version.sdk | tr -d '\r\n'))
+    echo "Deploying ARICIA Server for android version : "${android}
     adb -s ${SERIAL} shell "su -c 'rm -d ${DEPLOY_PATH}/* 2>/dev/null'"
     adb -s ${SERIAL} shell "su -c 'rm -d ${PUSH_PATH}/* 2>/dev/null'"
 
